@@ -375,11 +375,19 @@ export const useKanbanStore = defineStore('kanban', () => {
 		const bucketService = new BucketService()
 		try {
 			const returnedBucket = await bucketService.update(updatedBucket)
-			setBucketByIndex(bucketIndex, returnedBucket)
+			// The board may have been replaced while the request was in flight (e.g. the user
+			// navigated to another project), so the index captured above can be stale.
+			const currentIndex = findIndexById(buckets.value, updatedBucketData.id)
+			if (currentIndex !== -1) {
+				setBucketByIndex(currentIndex, returnedBucket)
+			}
 			return returnedBucket
 		} catch (e) {
-			// restore original state
-			setBucketByIndex(bucketIndex, oldBucket)
+			// restore original state, if the bucket is still on the board
+			const currentIndex = findIndexById(buckets.value, updatedBucketData.id)
+			if (currentIndex !== -1) {
+				setBucketByIndex(currentIndex, oldBucket)
+			}
 
 			throw e
 		} finally {
